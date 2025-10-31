@@ -1,7 +1,7 @@
 ObjC.import('Foundation');
 ObjC.import('stdlib');
 
-const ICON = '66323B0D-F24D-4F0C-BCB2-42D2BFA92C0F.png';
+const ICON = 'icon.png';
 
 /**
  * Convierte sugerencias de IMDb en items de Alfred

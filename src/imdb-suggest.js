@@ -102,29 +102,17 @@ function makeItems(suggestions, cacheDir, fileManager) {
             }
         }
 
-        // Construir URL
-        let subpath = sugg.id;
-        const prefix = subpath.substring(0, 2);
-
-        if (prefix === 'tt') {
-            subpath = `/title/${subpath}`;
-        } else if (prefix === 'nm') {
-            subpath = `/name/${subpath}`;
-        }
-
-        const arg = `https://www.imdb.com${subpath}`;
-
-        // Objeto simplificado con mods para CMD+Enter
+        // Objeto simplificado - solo pasar el código IMDb
         return {
             uid: sugg.id,
             title: title,
             subtitle: subtitle,
-            arg: arg,
+            arg: sugg.id,
             icon: { path: icon },
             mods: {
                 cmd: {
                     arg: sugg.id,
-                    subtitle: `IMDb ID: ${sugg.id}`
+                    subtitle: `Copy IMDb ID: ${sugg.id}`
                 }
             },
             valid: true

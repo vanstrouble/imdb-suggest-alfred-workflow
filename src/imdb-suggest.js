@@ -208,6 +208,18 @@ function run(argv) {
         return JSON.stringify({ items: [] });
     }
 
+    // Implementar debouncing simple
+    if (query.length < 3) {
+        return JSON.stringify({
+            items: [{
+                title: 'Keep typing...',
+                subtitle: `Type at least 3 characters to search IMDb`,
+                icon: { path: ICON },
+                valid: false
+            }]
+        });
+    }
+
     // Configurar archivos de caché y estado
     const env = $.NSProcessInfo.processInfo.environment;
     const workflowCache = ObjC.unwrap(env.objectForKey('alfred_workflow_cache'));
@@ -241,6 +253,24 @@ function run(argv) {
         (currentTime - cache[queryKey].timestamp) < cacheExpiry) {
         return JSON.stringify(cache[queryKey].data);
     }
+
+    // Debouncing adicional: no hacer requests muy frecuentes
+    const lastQueryTime = cache._lastRequestTime || 0;
+    const timeSinceLastRequest = currentTime - lastQueryTime;
+
+    if (timeSinceLastRequest < 2) { // Mínimo 2 segundos entre requests diferentes
+        return JSON.stringify({
+            items: [{
+                title: 'Searching...',
+                subtitle: `Please wait a moment before searching again`,
+                icon: { path: ICON },
+                valid: false
+            }]
+        });
+    }
+
+    // Actualizar timestamp del último request
+    cache._lastRequestTime = currentTime;
 
     // Limpiar caché de imágenes ocasionalmente (solo 10% de las veces)
     if (Math.random() < 0.1) {

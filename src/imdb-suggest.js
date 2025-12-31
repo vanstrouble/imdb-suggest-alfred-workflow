@@ -40,6 +40,36 @@ function writeTextFile(filepath, content) {
 }
 
 /**
+ * Creates a simple Alfred item (for errors, messages, etc)
+ * @param {string} title - Item title
+ * @param {string} subtitle - Item subtitle
+ * @param {boolean} valid - Whether item is actionable
+ * @returns {Object} Alfred item
+ */
+function createSimpleItem(title, subtitle, valid = false) {
+	return {
+		title: title,
+		subtitle: subtitle,
+		icon: { path: ICON },
+		valid: valid,
+	};
+}
+
+/**
+ * Creates result data with optional Alfred cache
+ * @param {Object[]} items - Array of Alfred items
+ * @param {boolean} useAlfredCache - Whether to add Alfred cache directive
+ * @returns {Object} Result data object
+ */
+function createResultData(items, useAlfredCache = false) {
+	const result = { items: items };
+	if (useAlfredCache) {
+		result.cache = { seconds: 30, loosereload: true };
+	}
+	return result;
+}
+
+/**
  * Converts IMDb suggestions to Alfred items
  * @param {Object[]} suggestions - IMDb suggestions array
  * @param {string} cacheDir - Cache directory for images
@@ -190,20 +220,18 @@ function run(argv) {
 	const query = argv[0]?.trim() || "";
 
 	if (!query) {
-		return JSON.stringify({ items: [] });
+		return JSON.stringify(createResultData([]));
 	}
 
 	if (query.length < 3) {
-		return JSON.stringify({
-			items: [
-				{
-					title: "Keep typing...",
-					subtitle: `Type at least 3 characters to search IMDb`,
-					icon: { path: ICON },
-					valid: false,
-				},
-			],
-		});
+		return JSON.stringify(
+			createResultData([
+				createSimpleItem(
+					"Keep typing...",
+					`Type at least 3 characters to search IMDb`
+				),
+			])
+		);
 	}
 
 	const env = $.NSProcessInfo.processInfo.environment;
@@ -233,39 +261,24 @@ function run(argv) {
 		try {
 			const suggestions = fetchSuggestions(query);
 
-			let resultData;
-			if (!suggestions || suggestions.length === 0) {
-				resultData = {
-					cache: { seconds: 30, loosereload: true },
-					items: [
-						{
-							title: "No results found",
-							subtitle: `No IMDb results for "${query}"`,
-							icon: { path: ICON },
-							valid: false,
-						},
-					],
-				};
-			} else {
-				resultData = {
-					cache: { seconds: 30, loosereload: true },
-					items: makeItems(suggestions, cacheDir, fileManager),
-				};
-			}
+			const items =
+				!suggestions || suggestions.length === 0
+					? [
+							createSimpleItem(
+								"No results found",
+								`No IMDb results for "${query}"`
+							),
+					  ]
+					: makeItems(suggestions, cacheDir, fileManager);
 
-			return JSON.stringify(resultData);
+			return JSON.stringify(createResultData(items, true));
 		} catch (error) {
-			return JSON.stringify({
-				cache: { seconds: 30, loosereload: true },
-				items: [
-					{
-						title: "Error",
-						subtitle: error.message || String(error),
-						icon: { path: ICON },
-						valid: false,
-					},
-				],
-			});
+			return JSON.stringify(
+				createResultData(
+					[createSimpleItem("Error", error.message || String(error))],
+					true
+				)
+			);
 		}
 	}
 
@@ -295,10 +308,9 @@ function run(argv) {
 			return JSON.stringify(cache[queryKey].data);
 		}
 		// Apply makeItems to respect current SHOW_POSTER setting
-		const resultData = {
-			items: makeItems(cachedSuggestions, cacheDir, fileManager),
-		};
-		return JSON.stringify(resultData);
+		return JSON.stringify(
+			createResultData(makeItems(cachedSuggestions, cacheDir, fileManager))
+		);
 	}
 
 	// Debouncing: avoid too frequent requests
@@ -311,16 +323,11 @@ function run(argv) {
 			return JSON.stringify(cache._lastResults);
 		}
 		// Show loading message for different query
-		return JSON.stringify({
-			items: [
-				{
-					title: "Searching IMDb...",
-					subtitle: "Results loading",
-					icon: { path: ICON },
-					valid: false,
-				},
-			],
-		});
+		return JSON.stringify(
+			createResultData([
+				createSimpleItem("Searching IMDb...", "Results loading"),
+			])
+		);
 	}
 
 	// Cleanup image cache occasionally (5% probability)
@@ -332,23 +339,17 @@ function run(argv) {
 	try {
 		const suggestions = fetchSuggestions(query);
 
-		let resultData;
-		if (!suggestions || suggestions.length === 0) {
-			resultData = {
-				items: [
-					{
-						title: "No results found",
-						subtitle: `No IMDb results for "${query}"`,
-						icon: { path: ICON },
-						valid: false,
-					},
-				],
-			};
-		} else {
-			resultData = {
-				items: makeItems(suggestions, cacheDir, fileManager),
-			};
-		}
+		const items =
+			!suggestions || suggestions.length === 0
+				? [
+						createSimpleItem(
+							"No results found",
+							`No IMDb results for "${query}"`
+						),
+				  ]
+				: makeItems(suggestions, cacheDir, fileManager);
+
+		const resultData = createResultData(items);
 
 		// Update cache - store raw suggestions for dynamic processing
 		cache[queryKey] = {
@@ -382,15 +383,10 @@ function run(argv) {
 
 		return JSON.stringify(resultData);
 	} catch (error) {
-		return JSON.stringify({
-			items: [
-				{
-					title: "Error",
-					subtitle: error.message || String(error),
-					icon: { path: ICON },
-					valid: false,
-				},
-			],
-		});
+		return JSON.stringify(
+			createResultData([
+				createSimpleItem("Error", error.message || String(error)),
+			])
+		);
 	}
 }

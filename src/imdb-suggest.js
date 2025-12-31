@@ -2,6 +2,11 @@ ObjC.import("Foundation");
 ObjC.import("stdlib");
 
 const ICON = "icon.png";
+const SHOW_POSTER = (() => {
+	const env = $.NSProcessInfo.processInfo.environment;
+	const showPoster = ObjC.unwrap(env.objectForKey("show_poster"));
+	return showPoster === "1" || showPoster === "true";
+})();
 
 /**
  * Reads text file if exists
@@ -56,7 +61,8 @@ function makeItems(suggestions, cacheDir, fileManager) {
 		const subtitle = sugg.s || "";
 
 		let icon = ICON;
-		if (sugg.i && sugg.i.imageUrl) {
+		// Only download and use posters if SHOW_POSTER is enabled
+		if (SHOW_POSTER && sugg.i && sugg.i.imageUrl) {
 			try {
 				const imageUrl = sugg.i.imageUrl.replace("_V1_", "_V1_UY100");
 				const filename = imageUrl.split("/").pop().split("?")[0];
@@ -237,7 +243,15 @@ function run(argv) {
 		cache[queryKey].timestamp &&
 		currentTime - cache[queryKey].timestamp < cacheExpiry
 	) {
-		return JSON.stringify(cache[queryKey].data);
+		const cachedSuggestions = cache[queryKey].suggestions;
+		if (!cachedSuggestions || cachedSuggestions.length === 0) {
+			return JSON.stringify(cache[queryKey].data);
+		}
+		// Apply makeItems to respect current SHOW_POSTER setting
+		const resultData = {
+			items: makeItems(cachedSuggestions, cacheDir, fileManager),
+		};
+		return JSON.stringify(resultData);
 	}
 
 	// Debouncing: avoid too frequent requests
@@ -289,8 +303,9 @@ function run(argv) {
 			};
 		}
 
-		// Update cache
+		// Update cache - store raw suggestions for dynamic processing
 		cache[queryKey] = {
+			suggestions: suggestions,
 			data: resultData,
 			timestamp: currentTime,
 		};

@@ -222,7 +222,54 @@ function run(argv) {
 
 	const cacheFile = `${cacheDir}/cache.json`;
 
-	// Read existing cache
+	// When SHOW_POSTER is disabled, skip file cache and let Alfred handle caching
+	if (!SHOW_POSTER) {
+		// Cleanup image cache occasionally (5% probability)
+		if (Math.random() < 0.05) {
+			cleanupImageCache(cacheDir, fileManager, 300);
+		}
+
+		// Fetch fresh data without file cache
+		try {
+			const suggestions = fetchSuggestions(query);
+
+			let resultData;
+			if (!suggestions || suggestions.length === 0) {
+				resultData = {
+					cache: { seconds: 30, loosereload: true },
+					items: [
+						{
+							title: "No results found",
+							subtitle: `No IMDb results for "${query}"`,
+							icon: { path: ICON },
+							valid: false,
+						},
+					],
+				};
+			} else {
+				resultData = {
+					cache: { seconds: 30, loosereload: true },
+					items: makeItems(suggestions, cacheDir, fileManager),
+				};
+			}
+
+			return JSON.stringify(resultData);
+		} catch (error) {
+			return JSON.stringify({
+				cache: { seconds: 30, loosereload: true },
+				items: [
+					{
+						title: "Error",
+						subtitle: error.message || String(error),
+						icon: { path: ICON },
+						valid: false,
+					},
+				],
+			});
+		}
+	}
+
+	// SHOW_POSTER enabled: use file cache
 	let cache = {};
 	const cacheData = readTextFile(cacheFile, fileManager);
 	if (cacheData) {

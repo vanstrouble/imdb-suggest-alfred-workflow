@@ -77,22 +77,17 @@ function createResultData(items, useAlfredCache = false) {
  * @returns {Object[]} Alfred items array
  */
 function makeItems(suggestions, cacheDir, fileManager) {
-	const imagesDir = cacheDir + "/images";
-
-	fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
-		$(imagesDir),
-		true,
-		$(),
-		$()
-	);
-
 	return suggestions.map((sugg) => {
-		const title = sugg.l;
-		const subtitle = sugg.s || "";
-
 		let icon = ICON;
 		// Only download and use posters if SHOW_POSTER is enabled
 		if (SHOW_POSTER && sugg.i && sugg.i.imageUrl) {
+			const imagesDir = cacheDir + "/images";
+			fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
+				$(imagesDir),
+				true,
+				$(),
+				$()
+			);
 			try {
 				const imageUrl = sugg.i.imageUrl.replace("_V1_", "_V1_UY100");
 				const filename = imageUrl.split("/").pop().split("?")[0];
@@ -115,8 +110,8 @@ function makeItems(suggestions, cacheDir, fileManager) {
 
 		return {
 			uid: sugg.id,
-			title: title,
-			subtitle: subtitle,
+			title: sugg.l,
+			subtitle: sugg.s || "",
 			arg: sugg.id,
 			icon: { path: icon },
 			mods: {
@@ -129,6 +124,25 @@ function makeItems(suggestions, cacheDir, fileManager) {
 			valid: true,
 		};
 	});
+}
+
+/**
+ * Fetches suggestions and returns Alfred items
+ * @param {string} query - Search query
+ * @param {string} cacheDir - Cache directory
+ * @param {Object} fileManager - NSFileManager instance
+ * @returns {Object[]} Alfred items array
+ */
+function fetchAndMakeItems(query, cacheDir, fileManager) {
+	const suggestions = fetchSuggestions(query);
+	return !suggestions || suggestions.length === 0
+		? [
+				createSimpleItem(
+					"No results found",
+					`No IMDb results for "${query}"`
+				),
+		  ]
+		: makeItems(suggestions, cacheDir, fileManager);
 }
 
 /**
@@ -250,28 +264,20 @@ function run(argv) {
 
 	const cacheFile = `${cacheDir}/cache.json`;
 
+	// Cleanup image cache occasionally (5% probability)
+	if (Math.random() < 0.05) {
+		cleanupImageCache(cacheDir, fileManager, 300);
+	}
+
 	// When SHOW_POSTER is disabled, skip file cache and let Alfred handle caching
 	if (!SHOW_POSTER) {
-		// Cleanup image cache occasionally (5% probability)
-		if (Math.random() < 0.05) {
-			cleanupImageCache(cacheDir, fileManager, 300);
-		}
-
-		// Fetch fresh data without file cache
 		try {
-			const suggestions = fetchSuggestions(query);
-
-			const items =
-				!suggestions || suggestions.length === 0
-					? [
-							createSimpleItem(
-								"No results found",
-								`No IMDb results for "${query}"`
-							),
-					  ]
-					: makeItems(suggestions, cacheDir, fileManager);
-
-			return JSON.stringify(createResultData(items, true));
+			return JSON.stringify(
+				createResultData(
+					fetchAndMakeItems(query, cacheDir, fileManager),
+					true
+				)
+			);
 		} catch (error) {
 			return JSON.stringify(
 				createResultData(
@@ -303,14 +309,11 @@ function run(argv) {
 		cache[queryKey].timestamp &&
 		currentTime - cache[queryKey].timestamp < cacheExpiry
 	) {
-		const cachedSuggestions = cache[queryKey].suggestions;
-		if (!cachedSuggestions || cachedSuggestions.length === 0) {
-			return JSON.stringify(cache[queryKey].data);
-		}
-		// Apply makeItems to respect current SHOW_POSTER setting
-		return JSON.stringify(
-			createResultData(makeItems(cachedSuggestions, cacheDir, fileManager))
-		);
+		const suggestions = cache[queryKey].suggestions;
+		const items = suggestions?.length
+			? makeItems(suggestions, cacheDir, fileManager)
+			: cache[queryKey].data.items;
+		return JSON.stringify(createResultData(items));
 	}
 
 	// Debouncing: avoid too frequent requests
@@ -330,25 +333,10 @@ function run(argv) {
 		);
 	}
 
-	// Cleanup image cache occasionally (5% probability)
-	if (Math.random() < 0.05) {
-		cleanupImageCache(cacheDir, fileManager, 300);
-	}
-
 	// Fetch fresh data
 	try {
 		const suggestions = fetchSuggestions(query);
-
-		const items =
-			!suggestions || suggestions.length === 0
-				? [
-						createSimpleItem(
-							"No results found",
-							`No IMDb results for "${query}"`
-						),
-				  ]
-				: makeItems(suggestions, cacheDir, fileManager);
-
+		const items = fetchAndMakeItems(query, cacheDir, fileManager);
 		const resultData = createResultData(items);
 
 		// Update cache - store raw suggestions for dynamic processing

@@ -6,7 +6,8 @@ This workflow complements Alfred's built-in IMDb Web Search by providing instant
 
 ## Download
 
-- You can download it directly from GitHub [here](https://github.com/vanstrouble/imdb-suggest-alfred-workflow/releases).
+- Available on the Alfred Gallery. [Get it here](https://alfred.app/workflows/vanstrouble/imdb-suggest/).
+- You can download it directly [from GitHub here](https://github.com/vanstrouble/imdb-suggest-alfred-workflow/releases).
 
 ## Usage
 

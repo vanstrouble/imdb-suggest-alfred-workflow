@@ -119,6 +119,10 @@ function makeItems(suggestions, cacheDir, fileManager) {
 					arg: sugg.id,
 					subtitle: `⌘ Copy IMDb ID: ${sugg.id}`,
 				},
+				"cmd + shift": {
+					arg: sugg.id,
+					subtitle: `⌘⇧ Paste IMDb ID into the frontmost app`,
+				},
 			},
 			quicklookurl: `https://www.imdb.com/title/${sugg.id}/`,
 			valid: true,

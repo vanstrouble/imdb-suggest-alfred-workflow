@@ -124,7 +124,8 @@ function makeItems(suggestions, cacheDir, fileManager) {
 					subtitle: `⌘⇧ Paste IMDb ID into the frontmost app`,
 				},
 			},
-			quicklookurl: `https://www.imdb.com/title/${sugg.id}/`,
+			// TODO: IMDb blocks quickloos. Consider opening IMDb page in browser instead of quicklook
+			// quicklookurl: `https://www.imdb.com/title/${sugg.id}/`,
 			valid: true,
 		};
 	});

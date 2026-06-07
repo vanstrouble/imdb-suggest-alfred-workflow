@@ -11,12 +11,12 @@ This workflow complements Alfred's built-in IMDb Web Search by providing instant
 
 ## Usage
 
-Start typing your search query in Alfred using your configured keyword (default: `imdb` or your preferred trigger).
+Start typing your search query in Alfred using your configured keyword (default: `imdb`).
 
-- **Keyword:** `[your-keyword] [search query]`
-- **Action:** Press `Enter` to open IMDb page in your browser
-- **Quick Look:** Press `⇧` (Shift) or `⌘Y` to preview the IMDb page
-- **Copy ID:** Hold `⌘` (Command) and press `Enter` to copy the IMDb ID
+- **Keyword:** `[keyword] [search query]`
+- **Action:** Press `↩` (Return) to open the selected title on IMDb.
+- **Copy IMDb ID:** Hold `⌘` (Command) and press `↩` (Return).
+- **Paste IMDb ID:** Hold `⌘` (Command) and `⇧` (Shift) and press `↩` (Return) to paste the IMDb ID into the frontmost app.
 
 <img src="img/imdb-suggest-preview.png" alt="IMDb Alfred Workflow Suggestion" width="530"/>
 
